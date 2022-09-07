@@ -1,11 +1,10 @@
-import * as rateChecker from '../../../../../../cfgov/unprocessed/apps/owning-a-home/js/explore-rates/rate-checker';
-import axios from '../../../../../../cfgov/unprocessed/apps/owning-a-home/node_modules/axios';
-import { simulateEvent } from '../../../../../util/simulate-event';
+import * as rateChecker from '../../../../../../cfgov/unprocessed/apps/owning-a-home/js/explore-rates/rate-checker.js';
+import { simulateEvent } from '../../../../../util/simulate-event.js';
 
-// Mock the XmlHttpRequest call from axios.
-jest.mock( '../../../../../../cfgov/unprocessed/apps/owning-a-home/node_modules/axios' );
-const mockResp = { data: 'mock data' };
-axios.get.mockImplementation( () => Promise.resolve( mockResp ) );
+global.fetch = jest.fn( () => Promise.resolve( {
+  json: () => new Promise( r => r )
+} )
+);
 
 const HTML_SNIPPET = `
 <div class="rate-checker">
@@ -186,6 +185,14 @@ describe( 'explore-rates/rate-checker', () => {
       expect( downPaymentDom.value ).toBe( '20000' );
       simulateEvent( 'focusout', downPaymentDom );
       expect( downPaymentDom.value ).toBe( '20,000' );
+    } );
+
+    it( 'rate structure', () => {
+      expect( rateStructureDom.value ).toBe( 'fixed' );
+    } );
+
+    it( 'ARM type', () => {
+      expect( armTypeDom.value ).toBe( '5-1' );
     } );
   } );
 } );

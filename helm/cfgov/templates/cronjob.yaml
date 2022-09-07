@@ -1,0 +1,77 @@
+{{- range .Values.cronJobs }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ printf "%s-%s" (include "cfgov.fullname" $) .name | trunc 52 | trimSuffix "-" | lower }}
+  labels:
+    {{- include "cfgov.labels" $ | nindent 4 }}
+spec:
+  suspend: {{ default false .suspend }}
+  schedule: {{ default "@daily" .schedule | quote }}
+  successfulJobsHistoryLimit: {{ default 1 .successfulJobsHistoryLimit }}
+  failedJobsHistoryLimit: {{ default 1 .failedJobsHistoryLimit }}
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          securityContext:
+            {{- toYaml $.Values.securityContext | nindent 12 }}
+          containers:
+            - name: {{ printf "%s-%s" $.Chart.Name .name | lower }}
+              {{- if .image }}
+              image: "{{ .image.repository }}:{{ .image.tag | default "latest" }}"
+              imagePullPolicy: {{ default "IfNotPresent" .image.pullPolicy }}
+              {{- else }}
+              image: "{{ $.Values.image.repository }}:{{ $.Values.image.tag | default $.Chart.AppVersion }}"
+              imagePullPolicy: {{ $.Values.image.pullPolicy }}
+              {{- end }}
+              command:
+                {{- range .command }}
+                - {{ . | quote }}
+                {{- end }}
+              args:
+                {{- range .args }}
+                - {{ . | quote }}
+                {{- end }}
+              volumeMounts:
+                {{- if or .includeEnv (not (hasKey . "includeEnv")) }}
+                # Add in main container volumes
+                {{- range $.Values.volumes }}
+                - mountPath: {{ .mountPath }}
+                  name: {{ .name }}
+                {{- end }}
+                {{- end }}
+                # Add in the cronjob volumes
+                {{- range .volumes }}
+                - mountPath: {{ .mountPath }}
+                  name: {{ .name }}
+                {{- end }}
+              env:
+                {{- if or .includeEnv (not (hasKey . "includeEnv")) }}
+                {{- include "cfgov.postgresEnv" $ | nindent 16 }}
+                {{- include "cfgov.searchEnv" $ | nindent 16 }}
+                {{- range $.Values.extraEnvs }}
+                - name: {{ .name }}
+                  value: {{ .value | quote }}
+                {{- end }}
+                {{- end }}
+                {{- range .env }}
+                - name: {{ .name }}
+                  value: {{ .value | quote }}
+                {{- end }}
+          restartPolicy: {{ default "OnFailure" .restartPolicy }}
+          volumes:
+            {{- if or .includeEnv (not (hasKey . "includeEnv")) }}
+            # Add in main container volumes
+            {{- range $.Values.volumes }}
+            - name: {{ .name }}
+              {{- toYaml .volume | nindent 14 }}
+            {{- end }}
+            {{- end }}
+            # Add in cronjob volumes
+            {{- range .volumes }}
+            - name: {{ .name }}
+              {{- toYaml .volume | nindent 14 }}
+            {{- end }}
+{{- end }}

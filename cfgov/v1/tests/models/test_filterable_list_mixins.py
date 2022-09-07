@@ -1,13 +1,14 @@
+import json
+from io import StringIO
+from unittest import mock
+
 from django.test import RequestFactory, TestCase
 
-from wagtail.core.blocks import StreamValue
-from wagtail.core.models import Site
+from wagtail.core.models import Page, Site
 
-import mock
-
-from scripts._atomic_helpers import filter_controls
-from v1.models import BlogPage
-from v1.models.browse_filterable_page import BrowseFilterablePage
+from search.elasticsearch_helpers import ElasticsearchTestsMixin
+from v1.documents import FilterablePagesDocument
+from v1.models import BlogPage, BrowseFilterablePage
 from v1.models.filterable_list_mixins import FilterableListMixin
 
 
@@ -19,8 +20,7 @@ class TestFilterableListMixin(TestCase):
     # FilterableListMixin.filterable_per_page_limit tests
     def test_per_page_limit_returns_integer(self):
         self.assertIsInstance(
-            FilterableListMixin.filterable_per_page_limit,
-            int
+            FilterableListMixin.filterable_per_page_limit, int
         )
 
     def test_get_form_data_returns_GET_data(self):
@@ -35,12 +35,12 @@ class TestFilterableListMixin(TestCase):
 
     # FilterableListMixin.get_context tests
     def test_get_context_raises_exception_for_super_obj_has_no_get_context(
-        self
+        self,
     ):
         self.assertRaises(
             AttributeError,
             self.mixin.get_context,
-            request=self.factory.get("/")
+            request=self.factory.get("/"),
         )
 
     @mock.patch("v1.models.filterable_list_mixins.Paginator")
@@ -50,15 +50,6 @@ class TestFilterableListMixin(TestCase):
         mock_form = mock.Mock()
         self.mixin.process_form(mock_request, mock_form)
         assert mock_form.is_valid.called
-
-    def test_filterable_pages_not_in_site_returns_no_pages(self):
-        class MockPageInDefaultSite(FilterableListMixin):
-            def get_site(self):
-                return None
-
-        self.assertFalse(
-            MockPageInDefaultSite().get_filterable_queryset().exists()
-        )
 
     # FilterableListMixin.set_do_not_index tests
     def test_do_not_index_is_false_by_default(self):
@@ -85,8 +76,7 @@ class TestFilterableListMixin(TestCase):
         assert self.mixin.do_not_index is False
 
 
-class FilterableRoutesTestCase(TestCase):
-
+class FilterableRoutesTestCase(ElasticsearchTestsMixin, TestCase):
     def setUp(self):
         self.filterable_page = BrowseFilterablePage(title="Blog", slug="test")
         self.root = Site.objects.get(is_default_site=True).root_page
@@ -99,67 +89,128 @@ class FilterableRoutesTestCase(TestCase):
         )
         self.filterable_page.add_child(instance=self.page)
 
+        self.rebuild_elasticsearch_index(
+            FilterablePagesDocument.Index.name, stdout=StringIO()
+        )
+
     def test_index_route(self):
         response = self.client.get("/test/")
         self.assertEqual(
-            response.context_data["filter_data"]["page_set"][0].title,
-            "Test"
+            response.context_data["filter_data"]["page_set"][0].title, "Test"
         )
 
     def test_feed_route(self):
         response = self.client.get("/test/feed/")
         self.assertEqual(
-            response["content-type"],
-            "application/rss+xml; charset=utf-8"
+            response["content-type"], "application/rss+xml; charset=utf-8"
+        )
+        self.assertEqual(response["Edge-Control"], "cache-maxage=10m")
+
+    def test_cache_tag_applied(self):
+        response = self.client.get(self.filterable_page.url)
+        self.assertEqual(
+            response.get("Edge-Cache-Tag"), self.filterable_page.slug
+        )
+
+    def test_cache_tag_applied_to_feed(self):
+        response = self.client.get(self.filterable_page.url + "feed/")
+        self.assertEqual(
+            response.get("Edge-Cache-Tag"), self.filterable_page.slug
         )
 
 
-class FilterableListRelationsTestCase(TestCase):
+class MockSearch:
+    def __init__(self, search_root, children_only):
+        self.search_root = search_root
+        self.children_only = children_only
 
-    def setUp(self):
-        self.filter_controls = filter_controls
 
-        self.filterable_page = BrowseFilterablePage(title="Blog", slug="test")
-        self.root = Site.objects.get(is_default_site=True).root_page
-        self.root.add_child(instance=self.filterable_page)
+@mock.patch(
+    "v1.models.BrowseFilterablePage.get_search_class", return_value=MockSearch
+)
+class FilterableListSearchTestCase(TestCase):
+    def test_no_filterable_list_block_defaults(self, _):
+        page = BrowseFilterablePage(title="test")
 
-        self.set_filterable_controls(filter_controls)
+        search = page.get_filterable_search()
+        self.assertEqual(search.search_root, page)
+        self.assertEqual(search.children_only, True)
 
-        self.child_page = BlogPage(title="Child test page", live=True)
-        self.sibling_page = BlogPage(title="Sibling test page", live=True)
-        self.archived_sibling_page = BlogPage(
-            title="Archive test page",
-            live=True,
-            is_archived='yes'
+    def test_search_default_children_only(self, _):
+        page = BrowseFilterablePage(
+            title="test",
+            content=json.dumps(
+                [
+                    {"type": "filter_controls", "value": {}},
+                ]
+            ),
         )
-        self.filterable_page.add_child(instance=self.child_page)
-        self.filterable_page.get_parent().add_child(instance=self.sibling_page)
-        self.filterable_page.get_parent().add_child(
-            instance=self.archived_sibling_page
+
+        search = page.get_filterable_search()
+        self.assertEqual(search.search_root, page)
+        self.assertEqual(search.children_only, True)
+
+    def test_search_children_only_true(self, _):
+        page = BrowseFilterablePage(
+            title="test",
+            content=json.dumps(
+                [
+                    {
+                        "type": "filter_controls",
+                        "value": {
+                            "filter_children": True,
+                        },
+                    },
+                ]
+            ),
         )
 
-    def set_filterable_controls(self, value):
-        self.filterable_page.content = StreamValue(
-            self.filterable_page.content.stream_block,
-            [value],
-            True
+        search = page.get_filterable_search()
+        self.assertEqual(search.search_root, page)
+        self.assertEqual(search.children_only, True)
+
+    def test_search_children_only_false_uses_default_site_if_not_in_site(
+        self, _
+    ):
+        page = BrowseFilterablePage(
+            title="test",
+            content=json.dumps(
+                [
+                    {
+                        "type": "filter_controls",
+                        "value": {
+                            "filter_children": False,
+                        },
+                    },
+                ]
+            ),
         )
-        self.filterable_page.save()
 
-    def test_get_filterable_children_pages(self):
-        filter_controls['value']['filter_children'] = True
-        filter_controls['value']['filter_siblings'] = False
-        self.set_filterable_controls(self.filter_controls)
+        search = page.get_filterable_search()
+        self.assertEqual(
+            search.search_root,
+            Site.objects.get(is_default_site=True).root_page,
+        )
+        self.assertEqual(search.children_only, False)
 
-        qs = self.filterable_page.get_filterable_queryset()
-        self.assertEqual(qs.count(), 1)
-        self.assertEqual(qs[0].pk, self.child_page.pk)
+    def test_search_children_only_false_uses_site_root(self, _):
+        page = BrowseFilterablePage(
+            title="test",
+            content=json.dumps(
+                [
+                    {
+                        "type": "filter_controls",
+                        "value": {
+                            "filter_children": False,
+                        },
+                    },
+                ]
+            ),
+        )
 
-    def test_get_filterable_siblings_pages(self):
-        filter_controls['value']['filter_children'] = False
-        filter_controls['value']['filter_siblings'] = True
-        self.set_filterable_controls(self.filter_controls)
+        Page.objects.get(pk=1).add_child(instance=page)
+        Site.objects.create(root_page=page)
 
-        qs = self.filterable_page.get_filterable_queryset()
-        self.assertEqual(qs.count(), 2)
-        self.assertEqual(qs[0].pk, self.sibling_page.pk)
+        search = page.get_filterable_search()
+        self.assertEqual(search.search_root.specific, page)
+        self.assertEqual(search.children_only, False)

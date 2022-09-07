@@ -1,4 +1,4 @@
-{% extends 'layout-2-1-bleedbar.html' %}
+{% extends 'layout-2-1.html' %}
 
 {% block css -%}
     {{ super() }}
@@ -22,7 +22,7 @@
 
     {%- import 'molecules/breadcrumbs.html' as breadcrumbs with context -%}
     {% set breadcrumb_items = [{
-        'href': search_page_url,
+        'href': url('prepaid_agreements:index'),
         'title': 'Prepaid Product Agreements Database'
     }]%}
     {{ breadcrumbs.render(breadcrumb_items) }}
@@ -153,10 +153,9 @@
 
 {% block javascript scoped %}
     {{ super() }}
-    <script async>
+    <script>
       if ( document.body.parentElement.className.indexOf( 'no-js' ) === -1 ) {
-        !function(){
-          {# Include site-wide JavaScript. #}
+        !function() {
           var s = [
             '{{ static('js/routes/data-research/prepaid-accounts/search-agreements/index.js') }}'
           ];

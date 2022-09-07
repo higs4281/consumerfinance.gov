@@ -1,24 +1,26 @@
-from django_elasticsearch_dsl import Document, fields
-from django_elasticsearch_dsl.registries import registry
+from django_opensearch_dsl import Document, fields
+from django_opensearch_dsl.registries import registry
 
 from ask_cfpb.models.answer_page import AnswerPage
 from search.elasticsearch_helpers import (
-    environment_specific_index, label_autocomplete, synonym_analyzer
+    environment_specific_index,
+    ngram_tokenizer,
+    synonym_analyzer,
 )
 
 
 @registry.register_document
 class AnswerPageDocument(Document):
 
-    autocomplete = fields.TextField(analyzer=label_autocomplete)
+    autocomplete = fields.TextField(analyzer=ngram_tokenizer)
     portal_topics = fields.KeywordField()
     portal_categories = fields.TextField()
     text = fields.TextField(attr="text", analyzer=synonym_analyzer)
     url = fields.TextField()
     preview = fields.TextField(attr="answer_content_preview")
 
-    def get_queryset(self):
-        query_set = super().get_queryset()
+    def get_queryset(self, *args, **kwargs):
+        query_set = super().get_queryset(*args, **kwargs)
         return query_set.filter(live=True, redirect_to_page=None)
 
     def prepare_autocomplete(self, instance):
@@ -37,14 +39,14 @@ class AnswerPageDocument(Document):
         return instance.url
 
     class Index:
-        name = environment_specific_index('ask-cfpb')
-        settings = {'number_of_shards': 1,
-                    'number_of_replicas': 0}
+        name = environment_specific_index("ask-cfpb")
+        settings = {"number_of_shards": 1, "number_of_replicas": 0}
+        auto_refresh = False
 
     class Django:
         model = AnswerPage
 
         fields = [
-            'search_tags',
-            'language',
+            "search_tags",
+            "language",
         ]

@@ -1,8 +1,14 @@
-FROM centos:7
-RUN yum install -y which gcc gcc-c++ kernel-devel make epel-release && \
-    yum install -y python36 && \
-    yum clean all
-COPY requirements /src/requirements
-RUN python3.6 -m ensurepip
-RUN pip3 install -U pip
-RUN pip3 install -r /src/requirements/docs.txt
+FROM python:3-alpine
+
+# Hard labels
+LABEL maintainer="tech@cfpb.gov"
+
+# Ensure that the environment uses UTF-8 encoding by default
+ENV LANG en_US.UTF-8
+ENV ENV /etc/profile
+ENV PIP_NO_CACHE_DIR true
+# Stops Python default buffering to stdout, improving logging to the console.
+ENV PYTHONUNBUFFERED 1
+
+COPY requirements/docs.txt /src/requirements.txt
+RUN pip install -U pip -r /src/requirements.txt

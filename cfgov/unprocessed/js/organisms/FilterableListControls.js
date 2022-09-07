@@ -30,6 +30,7 @@ function FilterableListControls( element ) {
   const _dom = checkDom( element, BASE_CLASS );
   const _form = _dom.querySelector( 'form' );
   let _expandable;
+  let _expandableContent;
   let _formModel;
 
   /**
@@ -53,16 +54,8 @@ function FilterableListControls( element ) {
     const _expandables = Expandable.init( _dom );
     _expandable = _expandables[0];
 
-    /**
-     * Refresh the height of the filterable list control's expandable
-     * to ensure all its children are visible.
-     */
-    function _refreshExpandableHeight() {
-      window.setTimeout(
-        _expandable.transition.expand.bind( _expandable.transition ),
-        250
-      );
-    }
+    // This is used for checking if the content is expanded.
+    _expandableContent = _expandable.element.querySelector( '.o-expandable_content' );
 
     // If multiselects exist on the form, iterate over them.
     multiSelects.forEach( multiSelect => {
@@ -70,11 +63,28 @@ function FilterableListControls( element ) {
       multiSelect.addEventListener( 'expandEnd', _refreshExpandableHeight );
       multiSelect.addEventListener( 'selectionsUpdated', _refreshExpandableHeight );
     } );
+    window.addEventListener( 'resize', _refreshExpandableHeight );
 
     _formModel.init();
     _initAnalyticsEvents.bind( this )();
 
     return this;
+  }
+
+  /**
+   * Refresh the height of the filterable list control's expandable
+   * to ensure all its children are visible.
+   */
+  let timeout;
+  function _refreshExpandableHeight() {
+    window.clearTimeout( timeout );
+    // TODO: Expandable itself should have an API to query if it is open or not.
+    if ( _expandableContent.classList.contains( 'o-expandable_content__expanded' ) ) {
+      timeout = window.setTimeout(
+        _expandable.transition.expand.bind( _expandable.transition ),
+        250
+      );
+    }
   }
 
   /**

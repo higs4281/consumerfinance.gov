@@ -4,58 +4,42 @@
 
 import Expandable from '@cfpb/cfpb-expandables/src/Expandable.js';
 import addressUtils from './address-utils';
-import axios from 'axios';
 import callCensus from './call-census';
 import contentControl from './content-control';
 import count from './count';
 import DT from './dom-tools';
 import fileInput from './file-input';
 import Papaparse from 'papaparse';
-import ruralCounties from './get-rural-counties';
+import getRuralCounties from './get-rural-counties';
 import textInputs from './text-inputs';
 import tiger from './call-tiger';
 
 require( './show-map' );
-// Polyfill ES6 Promise for IE11.
-require( 'es6-promise' ).polyfill();
-
-// Polyfill SVG classList API for IE11.
-if ( !( 'classList' in SVGElement.prototype ) ) {
-  Object.defineProperty( SVGElement.prototype, 'classList', {
-    get() {
-      return {
-        contains: className => this.className.baseVal.split( ' ' ).indexOf( className ) !== -1,
-        add: className => this.setAttribute( 'class', this.getAttribute( 'class' ) + ' ' + className ),
-        remove: className => {
-          const removedClass = this.getAttribute( 'class' ).replace( new RegExp( '(\\s|^)' + className + '(\\s|$)', 'g' ), '$2' );
-          if ( this.classList.contains( className ) ) {
-            this.setAttribute( 'class', removedClass );
-          }
-        }
-      };
-    }
-  } );
-}
 
 Expandable.init();
 
 const MAX_CSV_ROWS = 250;
 
-window.callbacks = {};
-window.callbacks.censusAPI = function( data, rural ) {
+function censusAPI( data, ruralCounties ) {
   const result = {};
   if ( addressUtils.isFound( data.result ) ) {
     result.x = data.result.addressMatches[0].coordinates.x;
     result.y = data.result.addressMatches[0].coordinates.y;
 
-    axios.all(
+    /*
+    In the 2019 tigerweb API the layer IDs/name mappings are as follows:
+    84 = Counties
+    64 = 2010 Census Urban Clusters
+    62 = 2010 Census Urbanized Areas
+    */
+    Promise.all(
       [
-        tiger( result.x, result.y, '86' ),
-        tiger( result.x, result.y, '66' ),
-        tiger( result.x, result.y, '64' )
+        tiger( result.x, result.y, '84' ),
+        tiger( result.x, result.y, '64' ),
+        tiger( result.x, result.y, '62' )
       ]
     )
-      .then( axios.spread( function( censusCounty, censusUC, censusUA ) {
+      .then( function( [ censusCounty, censusUC, censusUA ] ) {
         result.input = data.result.input.address.address;
         result.address = data.result.addressMatches[0].matchedAddress;
         result.countyName = censusCounty.features[0].attributes.BASENAME;
@@ -63,9 +47,11 @@ window.callbacks.censusAPI = function( data, rural ) {
         const fips = censusCounty.features[0].attributes.STATE +
                  censusCounty.features[0].attributes.COUNTY;
 
-        if ( addressUtils.isInCounty( fips, rural ) ) {
+        if ( addressUtils.isRural( fips, ruralCounties ) ) {
           result.type = 'rural';
-        } else if ( addressUtils.isRuralCensus( censusUC.features, censusUA.features ) ) {
+        } else if (
+          addressUtils.isRuralCensus( censusUC.features, censusUA.features )
+        ) {
           result.type = 'rural';
         } else {
           result.type = 'notRural';
@@ -75,9 +61,11 @@ window.callbacks.censusAPI = function( data, rural ) {
 
         addressUtils.render( result );
         count.updateCount( result.type );
-      } ) )
-      .catch( function( error ) {
-        console.log( error );
+      } )
+      .catch( function() {
+        const addressElement = DT.createEl( '<li>' + result.address + '</li>' );
+        DT.addEl( DT.getEl( '#process-error-desc' ), addressElement );
+        DT.removeClass( '#process-error', 'u-hidden' );
       } );
   } else {
     result.input = data.result.input.address.address;
@@ -88,14 +76,14 @@ window.callbacks.censusAPI = function( data, rural ) {
     count.updateCount( result.type );
     addressUtils.render( result );
   }
-};
+}
 
 function processAddresses( addresses ) {
   const processed = [];
 
-  ruralCounties( DT.getEl( '#year' ).value )
-    .then( function( rural ) {
-      addresses.forEach( function( address, index ) {
+  getRuralCounties( DT.getEl( '#year' ).value )
+    .then( function( ruralCounties ) {
+      addresses.forEach( function( address ) {
 
         if ( addressUtils.isDup( address, processed ) ) {
           // setup the result to render
@@ -109,7 +97,7 @@ function processAddresses( addresses ) {
           count.updateCount( result.type );
         } else {
           // if its not dup
-          callCensus( address, rural, 'callbacks.censusAPI' );
+          callCensus( address, ruralCounties, censusAPI );
           processed.push( address );
         }
       } );
@@ -118,8 +106,8 @@ function processAddresses( addresses ) {
 
 // On submit of address entered manually.
 const addressFormDom = document.querySelector( '#geocode' );
-addressFormDom.addEventListener( 'submit', function( e ) {
-  e.preventDefault();
+addressFormDom.addEventListener( 'submit', function( evt ) {
+  evt.preventDefault();
 
   window.location.hash = 'rural-or-underserved';
   const addresses = [];
@@ -400,19 +388,18 @@ function generateCSV() {
   function _loopHandler( element ) {
     const isHidden = DT.hasClass( DT.getParentEls( '.js-table' ), 'u-hidden' );
 
-    // add a data row, if table isn't hidden (!)
-    if ( isHidden === false ) {
+    /* Add a data row, if table isn't hidden (!)
+       and map cols have colspan and we don't want those. */
+    if ( isHidden === false && element.getAttribute( 'colspan' ) === null ) {
+      const CSVLabel = element.textContent.replace( 'Show map', '' );
 
-      // map cols have colspan and we don't want those
-      if ( element.getAttribute( 'colspan' ) === null ) {
-        const CSVLabel = element.textContent.replace( 'Show map', '' );
-        theCSV += '"' + CSVLabel + '"'; // put the content in first
+      // Put the content in first.
+      theCSV += '"' + CSVLabel + '"';
 
-        if ( element.matches( ':last-child' ) ) {
-          theCSV = theCSV + ',' + monthIndex + '/' + day + '/' + year + '\n';
-        } else {
-          theCSV += ',';
-        }
+      if ( element.matches( ':last-child' ) ) {
+        theCSV = theCSV + ',' + monthIndex + '/' + day + '/' + year + '\n';
+      } else {
+        theCSV += ',';
       }
     }
   }

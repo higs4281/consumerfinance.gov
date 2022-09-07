@@ -2,12 +2,35 @@
 
 ## Writing tests
 
-We have multiple resources for writing new unit tests for Django, Wagtial, and Python code:
+We have multiple resources for writing new unit tests for Django, Wagtail, and Python code:
 
 - [CFPB Django and Wagtail unit testing documentation](https://github.com/cfpb/development/blob/main/guides/unittesting-django-wagtail.md)
 - [The Django testing documentation](https://docs.djangoproject.com/en/1.11/topics/testing/overview/)
 - [The Wagtail testing documentation](http://docs.wagtail.io/en/stable/advanced_topics/testing.html)
 - [Real Python's "Testing in Django"](https://realpython.com/testing-in-django-part-1-best-practices-and-examples/)
+
+### Testing Elasticsearch
+
+When writing tests that rely on a running Elasticsearch service, consider using the
+[`search.elasticsearch_helpers.ElasticsearchTestsMixin`](https://github.com/cfpb/consumerfinance.gov/blob/main/cfgov/search/elasticsearch_helpers.py)
+mixin:
+
+```py
+from django.test import TestCase
+
+from search.elasticsearch_helpers import ElasticsearchTestsMixin
+
+
+class MyTests(ElasticsearchTestsMixin, TestCase):
+    def test_something(self):
+        self.rebuild_elasticsearch_index()
+
+        # test something that relies on the Elasticsearch index
+```
+
+Refer to the mixin's
+[source code](https://github.com/cfpb/consumerfinance.gov/blob/main/cfgov/search/elasticsearch_helpers.py)
+for additional details on its functionality.
 
 ## Prerequisites
 
@@ -31,11 +54,11 @@ pip install tox
 
 If you have set up
 [a Docker-based installation of consumerfinance.gov](/installation/#docker-based-installation),
-you can run the tests there by  
+you can run the tests there by
 [accessing the Python container's shell](http://localhost:8888/running-docker/#access-a-containers-shell):
 
 ```sh
-docker-compose exec python bash
+docker-compose exec python sh
 ```
 
 ## Running tests
@@ -51,8 +74,18 @@ tox
 ```
 
 Tox runs different isolated Python environments with different versions of dependencies.
-We use it to lint our Python files, check out import sorting, and run unit tests
-in both Python 3.6 and Python 3.8.
+We use it to format and lint our Python files, check out import sorting, and run unit tests
+in Python 3.8.
+
+To recreate the virtualenv for testing, run
+
+```sh
+tox -r
+```
+
+For additional information on tox arguments, refer to the [tox documentation](https://tox.wiki/en/latest/config.html?#cmdoption-tox-arg-args)
+
+
 You can select specific environments using `-e`.
 
 Running `tox` by itself is the same as running:
@@ -63,23 +96,15 @@ tox -e lint -e unittest
 
 These default environments are:
 
-- `lint`, which runs our [linting](#linting) tools. We require this
+- `lint`, which runs our [linters](#linting). We require this
   environment to pass in CI.
-- `validate-migrations`, which checks for any missing Django migrations. 
+- `validate-migrations`, which checks for any missing Django migrations.
   We require this environment to pass in CI.
 - `unittest`, which runs unit tests against the current production
   versions of Python, Django, and Wagtail. We require this environment to
   pass in CI.
 
-In addition, we also have this environment:
-
-- `unittest-future`, which runs unit tests against upcoming versions of
-  Python, Django, and Wagtail. We do not require this environment to pass in
-  CI.
-
-By default this uses a local SQLite database for tests. To override this, you
-can set the `TEST_DATABASE_URL` environment variable to a database connection
-string as supported by [dj-database-url](https://github.com/kennethreitz/dj-database-url).
+Tests will run against the default Django database.
 
 If you would like to run only a specific test, or the tests for a specific app,
 you can provide a dotted path to the test as the final argument to any of the above calls to `tox`:
@@ -87,6 +112,21 @@ you can provide a dotted path to the test as the final argument to any of the ab
 ```sh
 tox -e unittest regulations3k.tests.test_regdown
 ```
+
+If you would like to skip running Django migrations when testing, set the
+`SKIP_DJANGO_MIGRATIONS` environment variable to any value before running `tox`.
+
+
+### Formatting
+We use `black` to autoformat our Python code. `black` is invoked by Tox using
+the `lint` environment (this will also run `flake8` and `isort`):
+
+```sh
+tox -e lint
+```
+
+**It is highly recommended to only invoke black via tox**
+
 
 ### Linting
 
@@ -96,7 +136,11 @@ We use the `flake8` and `isort` tools to ensure compliance with
 and the
 [CFPB Python style guide](https://github.com/cfpb/development/blob/main/standards/python.md#linting).
 
-Both `flake8` and `isort` can be run using the Tox `lint` environment:
+We also use [Bandit](https://bandit.readthedocs.io/) to find any common
+security issues in our Python code.
+
+`flake8`, `isort`, and `bandit` can all be run using the Tox `lint` environment
+(this will also run `black`):
 
 ```sh
 tox -e lint
@@ -113,7 +157,14 @@ From the root of `consumerfinance.gov`.
 
 ### Coverage
 
-To see Python code coverage information, run
+To see Python code coverage information immediately following a test run,
+you can add the `coverage` env to the list of envs for tox to run:
+
+```sh
+tox -e lint -e unittest -e coverage
+```
+
+You can also run coverage directly to see coverage information from a previous test run:
 
 ```sh
 coverage report -m

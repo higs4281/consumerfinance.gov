@@ -1,4 +1,4 @@
-{% extends 'layout-2-1-bleedbar.html' %}
+{% extends 'layout-2-1.html' %}
 {% import 'templates/render_block.html' as render_block with context %}
 {% import 'templates/streamfield-sidefoot.html' as streamfield_sidefoot with context %}
 
@@ -85,7 +85,7 @@
 {% block content_sidebar_modifiers -%}
     o-sidebar-content
 {%- endblock %}
-    
+
 {% block content_sidebar scoped -%}
 <div class="block block__flush-top u-mb45 about-us-text">
     {% if about_us %}

@@ -1,4 +1,4 @@
-{% extends 'layout-2-1-bleedbar.html' %}
+{% extends 'layout-2-1.html' %}
 
 {% import 'templates/streamfield-sidefoot.html' as streamfield_sidefoot with context %}
 {% import 'templates/render_block.html' as render_block with context %}
@@ -24,10 +24,6 @@
 
 {# BODY items #}
 
-{% block body_classes %}
-    {{ super() }}
-{% endblock body_classes %}
-
 {% block hero -%}
     {% for block in page.header -%}
         {{ render_block.render(block, loop.index) }}
@@ -51,10 +47,9 @@
 
 {% block javascript scoped %}
     {{ super() }}
-    <script async>
+    <script>
       if ( document.body.parentElement.className.indexOf( 'no-js' ) === -1 ) {
-        !function(){
-          {# Include site-wide JavaScript. #}
+        !function() {
           var s = [
             '{{ static('apps/regulations3k/js/index.js') }}',
             '{{ static('apps/regulations3k/js/recent-notices.js') }}'

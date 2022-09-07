@@ -16,18 +16,22 @@
 
    value.links:     List of links to render with:
 
-        link.url:       Link URL.
+        link.url:        Link URL.
 
-        link.text:      (Optional) Link text.
+        link.text:       (Optional) Link text.
+
+        link.aria_label: (Optional) Assistive ARIA text for screenreaders.
 
    value.image:     (Optional) An ImageBasic atom.
 
    value.video:     (Optional) A VideoPlayer organism.
 
+   value.layout_left (Optional) If True, Use the image-on-the-left layout.
+
    ========================================================================== #}
 
 <section class="o-featured-content-module
-                o-featured-content-module__center">
+                {{ 'o-featured-content-module__left' if value.layout_left }}">
     <div class="o-featured-content-module_text">
         <h2 class="h3">{{ value.heading }}</h2>
 
@@ -37,8 +41,10 @@
         <ul class="m-list m-list__links">
             {% for link in value.links %}
                 <li class="m-list_item">
-                    <a class="m-list_link" href="{{ link.url }}">
-                        {{- link.text | default( link.url ) -}}
+                    <a class="m-list_link"
+                       href="{{ link.url }}"
+                       {% if link.aria_label %}aria-label="{{ link.aria_label }}"{% endif %}>
+                       {{- link.text | default( link.url ) -}}
                     </a>
                 </li>
             {% endfor %}

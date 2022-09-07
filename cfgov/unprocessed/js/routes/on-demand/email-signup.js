@@ -23,12 +23,17 @@ function emailValidation( fields ) {
   ).msg;
 }
 
-for ( let i = 0; i < emailSignUpsLength; i++ ) {
-  formSubmit = new FormSubmit(
-    emailSignUps[i],
-    BASE_CLASS,
-    { validator: emailValidation, language: language }
-  );
 
-  formSubmit.init();
+for ( let i = 0; i < emailSignUpsLength; i++ ) {
+  const signup = emailSignUps[i];
+  const form = signup.querySelector( 'form' );
+  if ( form ) {
+    formSubmit = new FormSubmit(
+      signup,
+      BASE_CLASS,
+      { validator: emailValidation, language: language }
+    );
+
+    formSubmit.init();
+  }
 }

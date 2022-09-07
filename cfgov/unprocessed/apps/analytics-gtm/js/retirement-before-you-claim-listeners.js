@@ -1,10 +1,9 @@
-// TODO: Remove jquery.
-import $ from 'jquery';
-
 import {
   analyticsLog,
   track
 } from './util/analytics-util';
+
+import { closest } from '@cfpb/cfpb-atomic-component/src/utilities/dom-traverse.js';
 
 // Retirement - Before You Claim custom analytics file
 
@@ -35,57 +34,56 @@ const BYCAnalytics = ( function() {
     return age;
   }
 
-  $( document ).ready( function() {
+  const stepOneForm = document.querySelector( '#step-one-form' );
+  stepOneForm.addEventListener( 'submit', formSubmitted );
 
-    const stepOneForm = document.querySelector( '#step-one-form' );
-    stepOneForm.addEventListener( 'submit', formSubmitted );
+  /**
+   * Handle submission of the form.
+   * @param {Event} evt - Form submit event object.
+   */
+  function formSubmitted( evt ) {
+    evt.preventDefault();
+    stepOneSubmitted = true;
 
-    /**
-     * Handle submission of the form.
-     * @param {Event} evt - Form submit event object.
-     */
-    function formSubmitted( evt ) {
-      evt.preventDefault();
-      stepOneSubmitted = true;
+    // Track birthdate.
+    const month = document.querySelector( '#bd-month' ).value;
+    const day = document.querySelector( '#bd-day' ).value;
+    track(
+      'Before You Claim Interaction',
+      'Get Your Estimates submit birthdate',
+      'Birthdate Month and Day - ' + month + '/' + day
+    );
 
-      // Track birthdate.
-      const month = document.querySelector( '#bd-month' ).value;
-      const day = document.querySelector( '#bd-day' ).value;
-      track(
-        'Before You Claim Interaction',
-        'Get Your Estimates submit birthdate',
-        'Birthdate Month and Day - ' + month + '/' + day
-      );
+    // Track age.
+    const year = document.querySelector( '#bd-year' ).value;
+    const age = calculateAge( month, day, year );
+    track(
+      'Before You Claim Interaction',
+      'Get Your Estimates submit age',
+      'Age ' + age
+    );
 
-      // Track age.
-      const year = document.querySelector( '#bd-year' ).value;
-      const age = calculateAge( month, day, year );
-      track(
-        'Before You Claim Interaction',
-        'Get Your Estimates submit age',
-        'Age ' + age
-      );
-
-      // Start mouseflow heatmap capture.
-      if ( window.mouseflow ) {
-        // Stop any in-progress heatmap capturing.
-        window.mouseflow.stop();
-        // Start a new heatmap recording.
-        window.mouseflow.start();
-        analyticsLog( 'Mouseflow capture started!' );
-      }
+    // Start mouseflow heatmap capture.
+    if ( window.mouseflow ) {
+      // Stop any in-progress heatmap capturing.
+      window.mouseflow.stop();
+      // Start a new heatmap recording.
+      window.mouseflow.start();
+      analyticsLog( 'Mouseflow capture started!' );
     }
 
-    $( '#claim-canvas' ).on( 'mousedown', 'rect', function() {
-      const age = $( this ).attr( 'data-age' );
-      track(
-        'Before You Claim Interaction',
-        'Graph Age Bar clicked',
-        'Age ' + age
-      );
+    document.querySelector( '#claim-canvas' ).addEventListener( 'mousedown', function( event ) {
+      if ( event.target.classList.contains( 'graph__bar' ) ) {
+        const age = event.target.getAttribute( 'data-bar_age' );
+        track(
+          'Before You Claim Interaction',
+          'Graph Age Bar clicked',
+          'Age ' + age
+        );
+      }
     } );
 
-    $( '#claim-canvas' ).on( 'mousedown', '#graph_slider-input', function() {
+    document.querySelector( '#graph_slider-input' ).addEventListener( 'mousedown', function() {
       sliderIsActive = true;
       sliderClicks++;
       track(
@@ -95,18 +93,21 @@ const BYCAnalytics = ( function() {
       );
     } );
 
-    $( '#claim-canvas' ).on( 'click', '.age-text', function() {
-      const age = $( this ).attr( 'data-age-value' );
-      track(
-        'Before You Claim Interaction',
-        'Age Text Box clicked',
-        'Age ' + age
-      );
+    document.querySelector( '#claim-canvas' ).addEventListener( 'click', function( event ) {
+      const target = event.target.parentNode;
+      if ( target.classList.contains( 'age-text' ) ) {
+        const age = target.getAttribute( 'data-age-value' );
+        track(
+          'Before You Claim Interaction',
+          'Age Text Box clicked',
+          'Age ' + age
+        );
+      }
     } );
 
-    $( 'body' ).on( 'mouseup', function() {
+    document.body.addEventListener( 'mouseup', function() {
       if ( sliderIsActive === true ) {
-        const age = $( '.selected-age' ).text();
+        const age = document.querySelector( '.selected-age' ).innerText;
         track(
           'Before You Claim Interaction',
           'Slider released',
@@ -116,40 +117,50 @@ const BYCAnalytics = ( function() {
       }
     } );
 
-    $( 'button.lifestyle-btn' ).click( function() {
-      const $container = $( this ).closest( '.lifestyle-question_container' );
-      const question = $container.find( 'h3' ).text().trim();
-      const value = $( this ).val();
-      if ( questionsAnswered.indexOf( question ) === -1 ) {
-        questionsAnswered.push( question );
-      }
-      if ( questionsAnswered.length === 5 ) {
+    const lifestyleBtns = document.querySelectorAll( 'button.lifestyle-btn' );
+    for ( let i = 0, len = lifestyleBtns.length; i < len; i++ ) {
+      lifestyleBtns[i].addEventListener( 'click', function( event ) {
+        const target = event.currentTarget;
+        // TODO: migrate off closest requirement, if possible.
+        const $container = closest( target, '.lifestyle-question_container' );
+        const question = $container.querySelector( 'h3' ).innerText.trim();
+        const value = target.value;
+        if ( questionsAnswered.indexOf( question ) === -1 ) {
+          questionsAnswered.push( question );
+        }
+        if ( questionsAnswered.length === 5 ) {
+          track(
+            'Before You Claim Interaction',
+            'All Lifestyle Buttons clicked',
+            'All button clicks'
+          );
+        }
         track(
           'Before You Claim Interaction',
-          'All Lifestyle Buttons clicked',
-          'All button clicks'
+          'Lifestyle Button clicked',
+          'Question: ' + question + ' - ' + value
         );
-      }
-      track(
-        'Before You Claim Interaction',
-        'Lifestyle Button clicked',
-        'Question: ' + question + ' - ' + value
-      );
-    } );
+      } );
+    }
 
-    $( 'input[name="benefits-display"]' ).click( function() {
-      if ( stepOneSubmitted ) {
-        const val = $( this ).val();
-        track(
-          'Before You Claim Interaction',
-          'Benefits View clicked',
-          val
-        );
-      }
-    } );
+    const benefitsRadios = document.querySelectorAll( 'input[name="benefits-display"]' );
+    for ( let i = 0, len = benefitsRadios.length; i < len; i++ ) {
+      // eslint-disable-next-line no-loop-func
+      benefitsRadios[i].addEventListener( 'click', function( event ) {
+        if ( stepOneSubmitted ) {
+          const val = event.currentTarget.value;
+          track(
+            'Before You Claim Interaction',
+            'Benefits View clicked',
+            val
+          );
+        }
+      } );
+    }
 
-    $( '#retirement-age-selector' ).change( function() {
-      const val = $( this ).find( 'option:selected' ).val();
+    document.querySelector( '#retirement-age-selector' ).addEventListener( 'change', function( event ) {
+      const target = event.currentTarget;
+      const val = target[target.selectedIndex].value;
       track(
         'Before You Claim Interaction',
         'Planned Retirement Age selected',
@@ -157,23 +168,14 @@ const BYCAnalytics = ( function() {
       );
     } );
 
-    $( 'button.helpful-btn' ).click( function() {
-      const val = $( this ).val();
-      track(
-        'Before You Claim Interaction',
-        'Was This Page Helpful clicked',
-        val
-      );
-    } );
-
-    $( '[data-tooltip-target]' ).click( function() {
-      const target = $( this ).attr( 'data-tooltip-target' );
+    document.querySelector( '[data-tooltip-target]' ).addEventListener( 'click', function( event ) {
+      const target = event.currentTarget.getAttribute( 'data-tooltip-target' );
       track(
         'Before You Claim Interaction',
         'Tooltip clicked',
         'Target: ' + target
       );
     } );
-  } );
+  }
 
-} )( $ );
+} )();

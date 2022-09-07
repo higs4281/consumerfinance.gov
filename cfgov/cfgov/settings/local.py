@@ -31,10 +31,17 @@ LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,
     "handlers": {
-        "console": {"level": "DEBUG", "class": "logging.StreamHandler",}
+        "console": {
+            "level": "DEBUG",
+            "class": "logging.StreamHandler",
+        }
     },
     "loggers": {
-        "": {"handlers": ["console"], "level": "INFO", "propagate": True,}
+        "": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": True,
+        }
     },
 }
 
@@ -43,6 +50,14 @@ if os.environ.get("ENABLE_SQL_LOGGING"):
     LOGGING["loggers"]["django.db.backends"] = {
         "handlers": ["console"],
         "level": "DEBUG",
+        "propagate": False,
+    }
+
+# Log Elasticsearch queries
+if os.environ.get("ENABLE_ES_LOGGING"):
+    LOGGING["loggers"]["elasticsearch.trace"] = {
+        "handlers": ["console"],
+        "level": "INFO",
         "propagate": False,
     }
 
@@ -76,22 +91,16 @@ if os.environ.get("ENABLE_DEBUG_TOOLBAR"):
 
 MIDDLEWARE += CSP_MIDDLEWARE
 
-# Disable caching when working locally
-CACHES = {
-    k: {
-        "BACKEND": "django.core.cache.backends.dummy.DummyCache",
-        "TIMEOUT": 0,
-    }
-    for k in ("default", "post_preview")
-}
-
-# Optionally enable cache for post_preview
-if os.environ.get("ENABLE_POST_PREVIEW_CACHE"):
-    CACHES["post_preview"] = {
-        "BACKEND": "django.core.cache.backends.db.DatabaseCache",
-        "LOCATION": "post_preview_cache",
-        "TIMEOUT": None,
-    }
+# Disable caching unless enabled via environment variable
+for _cache_name, _cache_envvar in (
+    ("default", "ENABLE_DEFAULT_CACHE"),
+    ("post_preview", "ENABLE_POST_PREVIEW_CACHE"),
+):
+    if not os.getenv(_cache_envvar):
+        CACHES[_cache_name] = {
+            "BACKEND": "django.core.cache.backends.dummy.DummyCache",
+            "TIMEOUT": 0,
+        }
 
 # Use a mock GovDelivery API instead of the real thing,
 # unless the GOVDELIVERY_BASE_URL environment variable is set.
@@ -102,8 +111,9 @@ if not os.environ.get("GOVDELIVERY_BASE_URL"):
 WAGTAIL_PLACEHOLDERIMAGES_DUMMY = True
 WAGTAIL_PLACEHOLDERIMAGES_SOURCE = "//placekitten.com/{width}/{height}"
 
-CSP_IMG_SRC += (
-    "placekitten.com",
-)
+CSP_IMG_SRC += ("placekitten.com",)
 
-ELASTICSEARCH_SYNONYMS_HOME = './search/resources'
+# Add django-cprofile-middleware to enable lightweight local profiling.
+# The middleware's profiling is only available if DEBUG=True
+MIDDLEWARE += ("django_cprofile_middleware.middleware.ProfilerMiddleware",)
+DJANGO_CPROFILE_MIDDLEWARE_REQUIRE_STAFF = False

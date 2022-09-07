@@ -4,32 +4,24 @@ volumes:
     postgres_data:
 
 services:
-    elasticsearch2:
-        build:
-            context: ./
-            dockerfile: ./docker/elasticsearch/Dockerfile
-        ports:
-            - 127.0.0.1:9000:9200
-            - 127.0.0.1:9100:9300
     elasticsearch:
         build:
             context: ./
-            dockerfile: ./docker/elasticsearch/7/Dockerfile
+            dockerfile: ./docker/elasticsearch/Dockerfile
         ports:
             - 127.0.0.1:9200:9200
             - 127.0.0.1:9300:9300
         environment:
             discovery.type: single-node
-        volumes:
-            - ./cfgov/search/resources/:/usr/share/elasticsearch/config/synonyms
+            ES_JAVA_OPTS: "-Xms512m -Xmx512m"
     kibana:
-        image: blacktop/kibana:7.10.1
+        image: docker.elastic.co/kibana/kibana:7.16.0
         depends_on:
             - elasticsearch
         ports:
             - 127.0.0.1:5601:5601
     postgres:
-        image: postgres:10-alpine
+        image: postgres:13-alpine
         user: postgres
         restart: always
         volumes:
@@ -40,24 +32,25 @@ services:
             POSTGRES_DB: cfgov
         ports:
             - 127.0.0.1:5432:5432
-
     python:
+        image: cfgov_python:local
         build:
             context: .
             dockerfile: Dockerfile
-            args:
-                scl_python_version: rh-python36
         depends_on:
             - elasticsearch
-            - elasticsearch2
             - postgres
         stdin_open: true
         tty: true
         environment:
-            ES7_HOST: elasticsearch
-            ES_HOST: elasticsearch2
-            ES_PORT: 9200
-
+            PGDATABASE: cfgov
+            PGUSER: cfpb
+            PGPASSWORD: cfpb
+            POSTGRES_USER: cfpb
+            PGHOST: postgres
+            PGPORT: 5432
+            ES_HOST: elasticsearch
+            SECRET_KEY: abcdefghijklmnopqrstuvwxyz
     docs:
         build:
             context: ./
@@ -75,7 +68,3 @@ services:
         working_dir: /src/consumerfinance.gov
         stdin_open: true
         tty: true
-networks:
-    default:
-        external:
-            name: cfgov

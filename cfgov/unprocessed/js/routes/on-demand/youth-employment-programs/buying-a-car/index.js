@@ -3,7 +3,7 @@ import checkbox from './templates/checkbox';
 import checklistGroupView from './views/checklist-group';
 import checklistMap from './models/checklist-map';
 import error from './views/error';
-import printButtonView from '../../../../../apps/youth-employment-success/js/views/print-button';
+import printButtonView from './views/print-button';
 import printTableView from './views/print-table';
 import selectedItems from './models/selected-items';
 import updateExpandableButtonText from './expandables';
@@ -22,8 +22,9 @@ const expandableEls = Array.prototype.slice.call(
   document.querySelectorAll(
     `${ EXPANDABLE_UI_CLASSES.base }`
   )
-)
-  .filter( e => e.parentNode.classList.contains( EXPANDABLE_GROUP_SELECTOR ) );
+).filter( elm => elm.parentNode.classList.contains(
+  EXPANDABLE_GROUP_SELECTOR
+) );
 
 const expandableData = expandableEls.reduce( ( memo, expandable ) => {
   const labelText = expandable.querySelector( `${ EXPANDABLE_UI_CLASSES.label }` );

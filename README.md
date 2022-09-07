@@ -11,54 +11,43 @@ and several standalone Django apps for specific parts of the site.
 Full installation and usage instructions are available in
 [our documentation](https://cfpb.github.io/consumerfinance.gov).
 
-This project requires Python 3.6, Node 12, and Gulp 4.
-We recommend the use of [virtualenv](https://virtualenv.pypa.io/en/stable/) and
-[virtualenvwrapper](https://virtualenvwrapper.readthedocs.io/en/latest/)
-for keeping the project's Python dependencies contained.
+This quickstart requires a working Docker Desktop installation and git:
 
-Clone the repository:
+- [Clone the repository](https://cfpb.github.io/consumerfinance.gov/installation/#clone-the-repository):
 
-```sh
-git clone git@github.com:cfpb/consumerfinance.gov.git
-```
+    ```shell
+    git clone https://github.com/cfpb/consumerfinance.gov.git
+    cd consumerfinance.gov
+    ```
+- One of the following runtimes:
+  - [Set up and run the Docker containers via docker-compose](https://cfpb.github.io/consumerfinance.gov/installation/#set-up-and-run-the-docker-containers):
 
-Create a virtual environment for Python dependencies:
+      ```shell
+      docker-compose up
+      ```
+  - [Set up and run the Docker containers via Kubernetes via Helm](https://cfpb.github.io/consumerfinance.gov/installation/#set-up-and-run-the-docker-containers):
 
-```sh
-cd consumerfinance.gov
-mkvirtualenv --python=python3.6 consumerfinance.gov
-```
+      ```shell
+      ./build-images.sh && ./helm-install.sh
+      ```
 
-Create and load initial environment settings:
+  if you see an error like:
+  ``` 
+  Error: Kubernetes cluster unreachable: Get "http://localhost:8080/version": dial tcp [::1]:8080: connect: connection refused
+  ```
+  then you need to activate Kubernetes in your docker desktop settings!
 
-```sh
-cp -a .env_SAMPLE .env
-source .env
-```
+  This may take some time, as it will also
+  [load initial data](https://cfpb.github.io/consumerfinance.gov/installation/#load-initial-data)
+  and
+  [build the frontend](https://cfpb.github.io/consumerfinance.gov/installation/#build-the-frontend).
 
-Install third-party dependencies and build frontend assets:
+consumerfinance.gov should now be available at <http://localhost:8000>.
 
-```sh
-./setup.sh
-```
-
-Create a local database, a Wagtail admin user, and a site homepage:
-
-```sh
-./initial-data.sh
-```
-
-Start your local Django server:
-
-```sh
-./runserver.sh
-```
-
-Your site will be available locally at <http://localhost:8000/>.
+Our documentation will be available at <http://localhost:8888> (docker-compose only).
 
 The Wagtail admin area will be available at <http://localhost:8000/admin/>,
 which you can log into with the credentials `admin`/`admin`.
-
 
 ## Documentation
 
@@ -76,6 +65,10 @@ mkdocs serve
 Documentation will be available locally at
 [http://localhost:8000/](http://localhost:8000/).
 
+
+## Getting the package
+Packages are tagged into one of three groups: main Branch -> latest, PRs -> pr-#, and Release -> major.minor.patch. The github SHA of the commit packaged should be listed as a label.
+To see our Docker image packages you can vist [Packages page](https://github.com/cfpb/consumerfinance.gov/pkgs/container/consumerfinance.gov)
 
 ## Getting help
 

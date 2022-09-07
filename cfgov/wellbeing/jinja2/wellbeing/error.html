@@ -1,10 +1,16 @@
 {# This is a fallback error page for users who don't have JavaScript to prevent
    them from submitting the questionnaire prematurely. #}
 
-{% extends 'layout-2-1-bleedbar.html' %}
+{% extends 'layout-2-1.html' %}
+
+{% set link_text =  _('Back to the questionnaire') %}
+{% set breadcrumb_items = [{
+    "title": link_text,
+    "href": url('fwb_home_' + current_language),
+}] %}
 
 {% block title -%}
-    {{ _('Financial well-being questionnaire submission problem') }}
+    {{ _('Financial well-being questionnaire submission problem') }} | {{ _('Consumer Financial Protection Bureau') }}
 {%- endblock %}
 
 {% block desc -%}

@@ -1,5 +1,5 @@
-from django_elasticsearch_dsl import Document, fields
-from django_elasticsearch_dsl.registries import registry
+from django_opensearch_dsl import Document, fields
+from django_opensearch_dsl.registries import registry
 
 from search.elasticsearch_helpers import environment_specific_index, strip_html
 from teachers_digital_platform.models.pages import ActivityPage
@@ -24,9 +24,9 @@ mtm_fields = [
 class ActivityPageDocument(Document):
     """Index an ActivityPage's fields and relations."""
 
-    text = fields.TextField(attr='summary', boost=10)
-    title = fields.TextField(attr='title', boost=10)
-    date = fields.DateField(attr='date')
+    text = fields.TextField(attr="summary", boost=10)
+    title = fields.TextField(attr="title", boost=10)
+    date = fields.DateField(attr="date")
     big_idea = fields.TextField()
     essential_questions = fields.TextField()
     objectives = fields.TextField()
@@ -48,20 +48,20 @@ class ActivityPageDocument(Document):
     topic = fields.KeywordField()
 
     class Index:
-        name = environment_specific_index('teachers-digital-platform')
-        settings = {'number_of_shards': 1,
-                    'number_of_replicas': 0}
+        name = environment_specific_index("teachers-digital-platform")
+        settings = {"number_of_shards": 1, "number_of_replicas": 0}
 
     class Django:
         model = ActivityPage
-        fields = [
-            'id'
-        ]
+        fields = ["id"]
 
-    def get_queryset(self):
+    def get_queryset(self, *args, **kwargs):
         """Prevent non-live pages from being indexed."""
-        return super(
-            ActivityPageDocument, self).get_queryset().filter(live=True)
+        return (
+            super(ActivityPageDocument, self)
+            .get_queryset(*args, **kwargs)
+            .filter(live=True)
+        )
 
     def prepare_activity_duration(self, instance):
         if instance.activity_duration:
@@ -99,7 +99,7 @@ class ActivityPageDocument(Document):
 
     def prepare_school_subject(self, instance):
         if instance.school_subject:
-            return[i.pk for i in instance.school_subject.all()]
+            return [i.pk for i in instance.school_subject.all()]
 
     def prepare_student_characteristics(self, instance):
         if instance.student_characteristics:

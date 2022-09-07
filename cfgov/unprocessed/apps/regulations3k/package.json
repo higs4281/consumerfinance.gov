@@ -13,11 +13,8 @@
   },
   "private": "true",
   "license": "SEE LICENSE IN TERMS.md",
-  "engines": {
-    "node": ">=12.x"
-  },
   "dependencies": {
-    "workbox-build": "6.0.2"
+    "workbox-build": "6.5.3"
   },
   "devDependencies": {}
 }

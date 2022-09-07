@@ -6,6 +6,9 @@ const bar = {
     ...styles.chart,
     type: 'column'
   },
+  legend: {
+    enabled: false
+  },
   plotOptions: {
     series: {
       states: {
@@ -18,6 +21,7 @@ const bar = {
   },
   xAxis: {
     title: {
+      margin: 10,
       y: 12,
       style: {
         color: '#5a5d61'

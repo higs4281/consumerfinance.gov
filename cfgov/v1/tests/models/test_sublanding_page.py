@@ -1,57 +1,63 @@
 import datetime as dt
-from unittest import TestCase
+import json
+from io import StringIO
 
-from wagtail.core.blocks import StreamValue
-
-import mock
+from django.test import TestCase
 
 from scripts import _atomic_helpers as atomic
+from search.elasticsearch_helpers import ElasticsearchTestsMixin
+from v1.documents import FilterablePagesDocument
 from v1.models import AbstractFilterPage, BrowseFilterablePage, SublandingPage
 from v1.tests.wagtail_pages import helpers
 
 
-class SublandingPageTestCase(TestCase):
+class SublandingPageTestCase(ElasticsearchTestsMixin, TestCase):
     """
     This test case checks that the browse-filterable posts of a sublanding
     page are properly retrieved.
     """
+
     def setUp(self):
-        self.request = mock.MagicMock()
         self.limit = 10
-        self.sublanding_page = SublandingPage(title='title')
+        self.sublanding_page = SublandingPage(title="title")
 
         helpers.publish_page(child=self.sublanding_page)
-        self.post1 = BrowseFilterablePage(title='post 1')
-        self.post2 = BrowseFilterablePage(title='post 2')
-        # the content of this post has both a full_width_text
-        # and a filter_controls
-        self.post1.content = StreamValue(self.post1.content.stream_block,
-                                         [atomic.full_width_text, atomic.filter_controls],
-                                         True)
-        # this one only has a filter_controls
-        self.post2.content = StreamValue(self.post1.content.stream_block,
-                                         [atomic.filter_controls], True)
 
+        # This post has both a FullWidthText and a FilterableList.
+        self.post1 = BrowseFilterablePage(
+            title="post 1",
+            content=json.dumps(
+                [atomic.full_width_text, atomic.filter_controls]
+            ),
+        )
         helpers.save_new_page(self.post1, self.sublanding_page)
+
+        # This one only has a FilterableList.
+        self.post2 = BrowseFilterablePage(
+            title="post 2", content=json.dumps([atomic.filter_controls])
+        )
         helpers.save_new_page(self.post2, self.sublanding_page)
 
         # manually set the publication date of the posts to ensure consistent
         # order of retrieval in test situations, otherwise the `date_published`
         # can vary due to commit order
 
-        self.child1_of_post1 = AbstractFilterPage(title='child 1 of post 1',
-                                                  date_published=dt.date(2016, 9, 1))
-        self.child2_of_post1 = AbstractFilterPage(title='child 2 of post 1',
-                                                  date_published=dt.date(2016, 9, 2))
-        self.child1_of_post2 = AbstractFilterPage(title='child 1 of post 2',
-                                                  date_published=dt.date(2016, 9, 3))
+        self.child1_of_post1 = AbstractFilterPage(
+            title="child 1 of post 1", date_published=dt.date(2016, 9, 1)
+        )
+        self.child2_of_post1 = AbstractFilterPage(
+            title="child 2 of post 1", date_published=dt.date(2016, 9, 2)
+        )
+        self.child1_of_post2 = AbstractFilterPage(
+            title="child 1 of post 2", date_published=dt.date(2016, 9, 3)
+        )
         helpers.save_new_page(self.child1_of_post1, self.post1)
         helpers.save_new_page(self.child2_of_post1, self.post1)
         helpers.save_new_page(self.child1_of_post2, self.post2)
 
-    def tearDown(self):
-
-        pass
+        self.rebuild_elasticsearch_index(
+            FilterablePagesDocument.Index.name, stdout=StringIO()
+        )
 
     def test_get_appropriate_descendants(self):
         """
@@ -73,11 +79,11 @@ class SublandingPageTestCase(TestCase):
         The posts should be retrieved in reverse chronological order, and if
         the limit exceeds the total number of posts, all should be retrieved.
         """
-        browsefilterable_posts = self.sublanding_page.get_browsefilterable_posts(self.limit)
-        self.assertEqual(len(browsefilterable_posts), 3)
-        self.assertEqual(self.child1_of_post1, browsefilterable_posts[2])
-        self.assertEqual(self.child2_of_post1, browsefilterable_posts[1])
-        self.assertEqual(self.child1_of_post2, browsefilterable_posts[0])
+        posts = self.sublanding_page.get_browsefilterable_posts(self.limit)
+        self.assertEqual(len(posts), 3)
+        self.assertEqual(self.child1_of_post1, posts[2])
+        self.assertEqual(self.child2_of_post1, posts[1])
+        self.assertEqual(self.child1_of_post2, posts[0])
 
     def test_get_browsefilterable_posts_with_limit(self):
         """
@@ -86,6 +92,6 @@ class SublandingPageTestCase(TestCase):
         specified number of posts, and that the most recent post comes first.
         """
         self.limit = 1
-        browsefilterable_posts = self.sublanding_page.get_browsefilterable_posts(self.limit)
-        self.assertEqual(1, len(browsefilterable_posts))
-        self.assertEqual(self.child1_of_post2, browsefilterable_posts[0])
+        posts = self.sublanding_page.get_browsefilterable_posts(self.limit)
+        self.assertEqual(len(posts), 1)
+        self.assertEqual(self.child1_of_post2, posts[0])

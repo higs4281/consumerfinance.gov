@@ -3,12 +3,15 @@
 {% set page={"search_description":"Use this tool throughout your homebuying process to see how your credit score, home price, down payment, and more can affect mortgage interest rates."} %}
 {% set active_page = "explore-rates" %}
 {% set page_js = "explore-rates" %}
-{% block title %}Rural and underserved areas tool > Consumer Financial Protection Bureau{% endblock title %}
 
-{% block metadescription %}
+{% block title -%}
+    Rural and underserved areas tool | Consumer Financial Protection Bureau
+{%- endblock %}
+
+{% block desc %}
 Use this tool throughout your homebuying process to see how your credit score,
 home price, down payment, and more can affect mortgage interest rates.
-{% endblock metadescription %}
+{% endblock %}
 
 {% block css %}
     {{ super() }}
@@ -18,10 +21,10 @@ home price, down payment, and more can affect mortgage interest rates.
 
 {% block javascript scoped %}
     {{ super() }}
-    <script async>
+    <script>
       if ( document.body.parentElement.className.indexOf( 'no-js' ) === -1 ) {
-        !function(){
-          {# Include site-wide JavaScript. #}
+        window.cfpbMapboxAccessToken = '{{ mapbox_access_token }}'
+        !function() {
           var s = [
             '{{ static('apps/rural-or-underserved-tool/js/common.js') }}'
           ];
@@ -46,11 +49,11 @@ home price, down payment, and more can affect mortgage interest rates.
                 </div>
             </div>
 
-            <div id="search-tool" class="content-l">
+            <div class="content-l">
                 <div class="content-l_col content-l_col-1">
                     {# Display errors here. #}
-                    <div id="fileError"
-                         class="block
+                    <div id="file-error"
+                            class="block
                                 block__flush-top
                                 block__flush-bottom
                                 block__padded-bottom
@@ -65,13 +68,13 @@ home price, down payment, and more can affect mortgage interest rates.
                                 </div>
                                 <div class="m-notification_explanation">
                                     <strong>We've noticed the following errors:</strong>
-                                    <div id="fileErrorDesc"></div>
+                                    <div id="file-error-desc"></div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div id="processError"
-                         class="block
+                    <div id="process-error"
+                            class="block
                                 block__flush-top
                                 block__flush-bottom
                                 block__padded-bottom
@@ -85,12 +88,19 @@ home price, down payment, and more can affect mortgage interest rates.
                                     Processing error
                                 </div>
                                 <div class="m-notification_explanation">
-                                    <strong>The following addresses were not processed because the server was temporarily unavailable. To try again, start a new search.</strong>
-                                    <ul id="processErrorDesc"></ul>
+                                    <p>
+                                        <strong>The following addresses were not processed because the server was temporarily unavailable. To try again, start a new search.</strong>
+                                    </p>
+                                    <ul id="process-error-desc"></ul>
                                 </div>
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            <div id="search-tool" class="content-l">
+                <div class="content-l_col content-l_col-1">
 
                     <h2>
                         Check status of properties for loans extended in
@@ -102,13 +112,9 @@ home price, down payment, and more can affect mortgage interest rates.
                                 </label>
                                 <div class="a-select">
                                     <select id="year" name="year">
-                                        <option value="2014">2014</option>
-                                        <option value="2015">2015</option>
-                                        <option value="2016">2016</option>
-                                        <option value="2017">2017</option>
-                                        <option value="2018">2018</option>
-                                        <option value="2019">2019</option>
-                                        <option selected value="2020">2020</option>
+                                      {% for year in years %}
+                                      <option {{'selected' if loop.last}} value="{{year}}">{{year}}</option>
+                                      {% endfor %}
                                     </select>
                                 </div>
                             </div>

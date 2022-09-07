@@ -49,10 +49,6 @@
 
 {# BODY items #}
 
-{% block body_classes %}
-    {{ super() }}
-{% endblock body_classes %}
-
 {% block content_main_modifiers -%}
     content__1-3
 {%- endblock %}
@@ -215,10 +211,9 @@
 
 {% block javascript scoped %}
     {{ super() }}
-    <script async>
+    <script>
       if ( document.body.parentElement.className.indexOf( 'no-js' ) === -1 ) {
-        !function(){
-          {# Include site-wide JavaScript. #}
+        !function() {
           var s = [
             '{{ static('apps/regulations3k/js/index.js') }}'
             {% if page.results.search_query %}

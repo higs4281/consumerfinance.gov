@@ -1,36 +1,50 @@
-from django import forms
-from django.core.exceptions import ValidationError
-
 from wagtail.core import blocks
+from wagtail.core.blocks.struct_block import StructBlockValidationError
 from wagtail.images.blocks import ImageChooserBlock
+
+from url_or_relative_url_field.forms import URLOrRelativeURLFormField
 
 
 def is_required(field_name):
-    return [str(field_name) + ' is required.']
+    return [str(field_name) + " is required."]
 
 
-class IntegerBlock(blocks.FieldBlock):
-    def __init__(self, required=True, help_text=None, min_value=None,
-                 max_value=None, **kwargs):
-        self.field = forms.IntegerField(
+class URLOrRelativeURLBlock(blocks.FieldBlock):
+    def __init__(
+        self,
+        required=True,
+        help_text=None,
+        max_length=None,
+        min_length=None,
+        validators=(),
+        **kwargs,
+    ):
+        self.field = URLOrRelativeURLFormField(
             required=required,
             help_text=help_text,
-            min_value=min_value,
-            max_value=max_value
+            max_length=max_length,
+            min_length=min_length,
+            validators=validators,
         )
-        super(IntegerBlock, self).__init__(**kwargs)
+        super().__init__(**kwargs)
 
     class Meta:
-        icon = 'plus-inverse'
+        icon = "site"
 
 
 class Hyperlink(blocks.StructBlock):
     text = blocks.CharBlock(required=False)
-    url = blocks.CharBlock(default='/', required=False)
+    aria_label = blocks.CharBlock(
+        required=False,
+        help_text="Add an ARIA label if the link text does not describe the "
+        "destination of the link (e.g. has ambiguous text like "
+        '"Learn more" that is not descriptive on its own).',
+    )
+    url = blocks.CharBlock(default="/", required=False)
 
     def __init__(self, required=True):
         self.is_required = required
-        super(Hyperlink, self).__init__()
+        super().__init__()
 
     @property
     def required(self):
@@ -39,40 +53,46 @@ class Hyperlink(blocks.StructBlock):
     def clean(self, data):
         error_dict = {}
 
-        try:
-            data = super(Hyperlink, self).clean(data)
-        except ValidationError as e:
-            error_dict.update(e.params)
+        data = super().clean(data)
 
-        if self.required:
-            if not data['text']:
-                error_dict.update({'text': is_required('Text')})
+        if self.is_required:
+            if not data["text"]:
+                error_dict.update({"text": is_required("Text")})
 
         if error_dict:
-            raise ValidationError("Hyperlink validation errors",
-                                  params=error_dict)
+            raise StructBlockValidationError(block_errors=error_dict)
         else:
             return data
 
     class Meta:
-        icon = 'link'
-        template = '_includes/atoms/hyperlink.html'
+        icon = "link"
+        template = "_includes/atoms/hyperlink.html"
 
 
 class Button(Hyperlink):
-    size = blocks.ChoiceBlock(choices=[
-        ('regular', 'Regular'),
-        ('large', 'Large Primary'),
-    ], default='regular')
+    size = blocks.ChoiceBlock(
+        choices=[
+            ("regular", "Regular"),
+            ("large", "Large Primary"),
+        ],
+        default="regular",
+    )
+
+
+IMAGE_ALT_TEXT_HELP_TEXT = (
+    "No character limit, but be as succinct as possible. If the image is "
+    "decorative (i.e., a screenreader wouldn't have anything useful to say "
+    "about it), leave this field blank."
+)
 
 
 class ImageBasicStructValue(blocks.StructValue):
     @property
     def url(self):
-        upload = self.get('upload')
+        upload = self.get("upload")
 
         if upload:
-            return upload.get_rendition('original').url
+            return upload.get_rendition("original").url
 
     @property
     def alt_text(self):
@@ -80,11 +100,11 @@ class ImageBasicStructValue(blocks.StructValue):
         # which cannot be called here because of a circular import. It would
         # be better to deprecate the image_alt_value tag in favor of using
         # this logic wherever we use ImageBasic atoms.
-        alt = self.get('alt')
+        alt = self.get("alt")
         if alt:
             return alt
 
-        upload = self.get('upload')
+        upload = self.get("upload")
         if upload:
             return upload.alt
 
@@ -94,16 +114,11 @@ class ImageBasicStructValue(blocks.StructValue):
 
 class ImageBasic(blocks.StructBlock):
     upload = ImageChooserBlock(required=False)
-    alt = blocks.CharBlock(
-        required=False,
-        help_text='If the image is decorative (i.e., if a screenreader '
-                  'wouldn\'t have anything useful to say about it), leave the '
-                  'Alt field blank.'
-    )
+    alt = blocks.CharBlock(required=False, help_text=IMAGE_ALT_TEXT_HELP_TEXT)
 
     def __init__(self, required=True):
         self.is_required = required
-        super(ImageBasic, self).__init__()
+        super().__init__()
 
     @property
     def required(self):
@@ -112,23 +127,19 @@ class ImageBasic(blocks.StructBlock):
     def clean(self, data):
         error_dict = {}
 
-        try:
-            data = super(ImageBasic, self).clean(data)
-        except ValidationError as e:
-            error_dict.update(e.params)
+        data = super().clean(data)
 
-        if not self.required and not data['upload']:
+        if not self.required and not data["upload"]:
             return data
 
-        if not data['upload']:
-            error_dict.update({'upload': is_required("Upload")})
+        if not data["upload"]:
+            error_dict.update({"upload": is_required("Upload")})
 
         if error_dict:
-            raise ValidationError("ImageBasic validation errors",
-                                  params=error_dict)
+            raise StructBlockValidationError(block_errors=error_dict)
         else:
             return data
 
     class Meta:
-        icon = 'image'
+        icon = "image"
         value_class = ImageBasicStructValue
