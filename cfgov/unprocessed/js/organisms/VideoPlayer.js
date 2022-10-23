@@ -58,7 +58,6 @@ function VideoPlayer( element ) {
 
     // Load the YouTube JS, triggering our callback.
     youTubeAPI.attachAPIReadyCallback( _videoAPIReady.bind( this ) );
-    youTubeAPI.embedVideoScript();
 
     return this;
   }

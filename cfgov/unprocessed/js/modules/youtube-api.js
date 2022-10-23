@@ -2,13 +2,9 @@
    YouTube API
    ========================================================================== */
 
-import jsLoader from './util/js-loader';
-
 const IMAGE_URL = 'https://img.youtube.com/vi/%video_id%/maxresdefault.jpg';
-const SCRIPT_API = 'https://www.youtube.com/iframe_api';
 
 let _callbacks;
-let _scriptLoadRequested;
 let _scriptLoaded;
 
 /**
@@ -36,17 +32,6 @@ function attachAPIReadyCallback( callback ) {
   }
 
   window.onYouTubeIframeAPIReady = onYouTubeIframeAPIReady;
-}
-
-/**
- * Embed the YouTube IFrame API.
- * @param {Function} [callback] - function to call when the script is loaded.
- */
-function embedVideoScript( callback ) {
-  if ( !_scriptLoadRequested ) {
-    jsLoader.loadScript( SCRIPT_API, callback );
-    _scriptLoadRequested = true;
-  }
 }
 
 /**
@@ -102,7 +87,6 @@ function instantiatePlayer( iframeContainerDom, videoId ) {
 // Expose public methods.
 export default {
   attachAPIReadyCallback,
-  embedVideoScript,
   fetchImageURL,
   instantiatePlayer
 };
