@@ -2,8 +2,9 @@ import EventObserver from '@cfpb/cfpb-atomic-component/src/mixins/EventObserver.
 import typeCheckers from '@cfpb/cfpb-atomic-component/src/utilities/type-checkers';
 
 const eventObserver = new EventObserver();
+let UNDEFINED;
 const Analytics = {
-  tagManagerIsLoaded: false,
+  tagManagerIsLoaded: UNDEFINED,
   addEventListener: eventObserver.addEventListener,
   removeEventListener: eventObserver.removeEventListener,
   dispatchEvent: eventObserver.dispatchEvent,
@@ -65,6 +66,12 @@ const Analytics = {
    */
   sendEvent: function (dataLayerOptions) {
     const callback = dataLayerOptions.eventCallback;
+
+    // Lazy initialize analytics.
+    if (typeof Analytics.tagManagerIsLoaded !== 'boolean') {
+      Analytics.init();
+    }
+
     if (Analytics.tagManagerIsLoaded) {
       window.dataLayer.push(dataLayerOptions);
     } else if (callback && typeof callback === 'function') {
@@ -88,7 +95,5 @@ const Analytics = {
     }
   },
 };
-
-Analytics.init();
 
 export default Analytics;
