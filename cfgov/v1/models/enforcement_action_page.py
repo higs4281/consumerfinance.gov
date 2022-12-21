@@ -11,7 +11,6 @@ from wagtail.admin.edit_handlers import (
 from wagtail.core.fields import StreamField
 from wagtail.core.models import Page
 from wagtail.images.edit_handlers import ImageChooserPanel
-from wagtail.search import index
 
 from modelcluster.fields import ParentalKey
 
@@ -287,11 +286,7 @@ class EnforcementActionPage(AbstractFilterPage):
         ]
     )
 
-    template = "enforcement-action/index.html"
-
-    search_fields = AbstractFilterPage.search_fields + [
-        index.SearchField("content")
-    ]
+    template = "v1/enforcement-action/index.html"
 
     @property
     def status_strings(self):

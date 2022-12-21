@@ -27,6 +27,14 @@ export class FilingInstructionGuide {
     return cy.get('#ctrl-f-search-input');
   }
 
+  getSearchInputClearButton() {
+    return cy.get('#ctrl-f-clear-button');
+  }
+
+  getSearchModalCloseButton() {
+    return cy.get('#ctrl-f-close-button');
+  }
+
   getSearchResults() {
     return cy.get('#ctrl-f-search-results');
   }
@@ -72,6 +80,18 @@ export class FilingInstructionGuide {
   }
 
   scrollToBottom() {
-    return cy.get('footer').scrollIntoView({ duration: 1000 });
+    return cy.get('footer').scrollIntoView();
+  }
+
+  getUnrenderedListTags() {
+    return cy.get('.o-fig').contains('<li>');
+  }
+
+  getUnrenderedBrTags() {
+    return cy.get('.o-fig').contains('<br>');
+  }
+
+  getUnrenderedPTags() {
+    return cy.get('.o-fig').contains('<p>');
   }
 }

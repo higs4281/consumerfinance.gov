@@ -1,9 +1,3 @@
-const {
-  closest,
-} = require('@cfpb/cfpb-atomic-component/src/utilities/dom-traverse.js');
-const objectValues = require('object.values');
-const objectEntries = require('object.entries');
-
 const $ = document.querySelector.bind(document);
 const $$ = document.querySelectorAll.bind(document);
 
@@ -34,7 +28,7 @@ class ChoiceField {
    * @returns {HTMLUListElement} The UL of the main set of answers
    */
   getUl() {
-    return closest(this.inputs[0], 'ul.ChoiceField');
+    return this.inputs[0].closest('ul.ChoiceField');
   }
 
   markError() {
@@ -69,7 +63,7 @@ ChoiceField.get = (name) => {
  * @returns {ChoiceField[]} unset choice fields
  */
 ChoiceField.findUnsets = () =>
-  objectValues(ChoiceField.cache).filter((cf) => cf.value === null);
+  Object.values(ChoiceField.cache).filter((cf) => cf.value === null);
 
 /**
  * Remove all the error indicators
@@ -88,7 +82,6 @@ ChoiceField.removeErrors = () => {
 ChoiceField.restoreFromSession = (key) => {
   const store = JSON.parse(sessionStorage.getItem(key) || '{}');
   let update = false;
-
   const checkCache = ([name, grp]) => {
     if (grp.value === null) {
       if (typeof store[name] !== 'undefined') {
@@ -102,7 +95,7 @@ ChoiceField.restoreFromSession = (key) => {
     }
   };
 
-  objectEntries(ChoiceField.cache).forEach(checkCache);
+  Object.entries(ChoiceField.cache).forEach(checkCache);
 
   if (update) {
     sessionStorage.setItem(key, JSON.stringify(store));
@@ -143,4 +136,4 @@ ChoiceField.init = () => {
   });
 };
 
-module.exports = ChoiceField;
+export default ChoiceField;

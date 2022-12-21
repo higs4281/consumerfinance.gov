@@ -17,7 +17,6 @@ const jsPaths = [
   `${routes}/es/single.js`,
   `${routes}/external-site.js`,
   // js for specific pages, based on url
-  `${routes}/about-us/careers/current-openings/index.js`,
   `${routes}/consumer-tools/debt-collection/index.js`,
   `${routes}/data-research/prepaid-accounts/search-agreements/index.js`,
   `${routes}/owning-a-home/mortgage-estimate/index.js`,
@@ -38,7 +37,6 @@ const jsPaths = [
   `${apps}/owning-a-home/js/common.js`,
   `${apps}/owning-a-home/js/explore-rates/index.js`,
   `${apps}/owning-a-home/js/mortgage-estimate/index.js`,
-  `${apps}/owning-a-home/js/form-explainer/index.js`,
   `${apps}/paying-for-college/js/disclosures/index.js`,
   `${apps}/paying-for-college/js/college-costs.js`,
   `${apps}/regulations3k/js/index.js`,
@@ -48,8 +46,7 @@ const jsPaths = [
   `${apps}/retirement/js/index.js`,
   `${apps}/rural-or-underserved-tool/js/common.js`,
   `${apps}/teachers-digital-platform/js/index.js`,
-  `${apps}/filing-instruction-guide/js/fig-sidenav.js`,
-  `${apps}/filing-instruction-guide/js/fig-search.js`,
+  `${apps}/filing-instruction-guide/js/fig-init.js`,
 ];
 
 module.exports = function (baseConfig) {

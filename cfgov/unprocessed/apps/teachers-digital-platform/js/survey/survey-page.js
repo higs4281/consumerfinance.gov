@@ -1,18 +1,14 @@
-const {
-  closest,
-} = require('@cfpb/cfpb-atomic-component/src/utilities/dom-traverse.js');
-const objectEntries = require('object.entries');
-const Cookie = require('js-cookie');
-const {
+import Cookies from 'js-cookie';
+import {
   ANSWERS_SESS_KEY,
   RESULT_COOKIE,
   SURVEY_COOKIE,
   SCORES_UNSET_KEY,
-} = require('./config');
-const modals = require('../modals');
-const ChoiceField = require('./ChoiceField');
-const ProgressBar = require('./ProgressBar');
-const SectionLink = require('./SectionLink');
+} from './config.js';
+import { init as modalsInit, close as modalsClose } from '../modals.js';
+import ChoiceField from './ChoiceField.js';
+import ProgressBar from './ProgressBar.js';
+import SectionLink from './SectionLink.js';
 
 const $ = document.querySelector.bind(document);
 const $$ = document.querySelectorAll.bind(document);
@@ -21,7 +17,6 @@ let progressBar;
 
 /**
  * @typedef {object} SurveyData
- * @property {string} itemBullet
  * @property {number} numAnswered
  * @property {number} pageIdx
  * @property {number[]} questionsByPage
@@ -40,7 +35,7 @@ function surveyPage() {
   }
 
   const data = readSurveyData();
-  modals.init();
+  modalsInit();
   ChoiceField.init();
   const store = ChoiceField.restoreFromSession(ANSWERS_SESS_KEY);
   data.numAnswered = Object.keys(store).length;
@@ -75,7 +70,7 @@ function readSurveyData() {
    * @type {SurveyData}
    */
   const data = Object.create(null);
-  objectEntries(el.dataset).forEach(([k, v]) => {
+  Object.entries(el.dataset).forEach(([k, v]) => {
     try {
       data[k] = JSON.parse(v);
     } catch (err) {
@@ -136,7 +131,7 @@ function handleNewSelections(data, store) {
  * @returns {boolean} True if execution should halt
  */
 function userTriedReentry() {
-  if (Cookie.get(RESULT_COOKIE)) {
+  if (Cookies.get(RESULT_COOKIE)) {
     // Has not cleared results.
     location.href = '../results/';
     return true;
@@ -150,14 +145,14 @@ function userTriedReentry() {
  */
 function allowStartOver() {
   document.addEventListener('click', (event) => {
-    const button = closest(event.target, '#modal-restart [data-cancel]');
+    const button = event.target.closest('#modal-restart [data-cancel]');
     if (button) {
       event.preventDefault();
       if (button.dataset.cancel) {
-        modals.close();
+        modalsClose();
       } else {
         sessionStorage.removeItem(ANSWERS_SESS_KEY);
-        Cookie.remove(SURVEY_COOKIE);
+        Cookies.remove(SURVEY_COOKIE);
         location.href = $('[data-grade-select-url]').dataset.gradeSelectUrl;
       }
     }
@@ -312,7 +307,7 @@ function breakSeparatedAnswers() {
    */
   const labels = [].slice.call($$('.ChoiceField .a-label'));
   labels.forEach((label) => {
-    if (closest(label, 'li:first-child') === label.parentElement) {
+    if (label.closest('li:first-child') === label.parentElement) {
       // Reset to "a"
       charCode = 97;
     }
@@ -337,11 +332,4 @@ function breakSeparatedAnswers() {
   });
 }
 
-export {
-  surveyPage,
-  scrollToEl,
-  ChoiceField,
-  progressBar,
-  Cookie,
-  SectionLink,
-};
+export { surveyPage, scrollToEl, ChoiceField, progressBar, SectionLink };

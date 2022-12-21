@@ -1,5 +1,6 @@
 import re
 
+from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import models
 from django.db.models import F, Value
@@ -19,7 +20,6 @@ from wagtail.admin.edit_handlers import (
 from wagtail.core.fields import StreamField
 from wagtail.core.models import Page, Site
 from wagtail.images.edit_handlers import ImageChooserPanel
-from wagtail.search import index
 
 from modelcluster.contrib.taggit import ClusterTaggableManager
 from modelcluster.fields import ParentalKey
@@ -75,7 +75,7 @@ class CFGOVPage(Page):
         through=CFGOVTaggedPages, blank=True, related_name="tagged_pages"
     )
     language = models.CharField(
-        choices=ref.supported_languages, default="en", max_length=100
+        choices=settings.LANGUAGES, default="en", max_length=100
     )
     social_sharing_image = models.ForeignKey(
         "v1.CFGOVImage",
@@ -130,10 +130,6 @@ class CFGOVPage(Page):
 
     # This is used solely for subclassing pages we want to make at the CFPB.
     is_creatable = False
-
-    search_fields = Page.search_fields + [
-        index.SearchField("sidefoot"),
-    ]
 
     # These fields show up in either the sidebar or the footer of the page
     # depending on the page type.
