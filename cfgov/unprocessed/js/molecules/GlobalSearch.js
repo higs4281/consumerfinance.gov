@@ -5,7 +5,7 @@ import {
 } from '@cfpb/cfpb-atomic-component/src/utilities/atomic-helpers.js';
 import ClearableInput from '../modules/ClearableInput.js';
 import EventObserver from '@cfpb/cfpb-atomic-component/src/mixins/EventObserver.js';
-import FlyoutMenu from '../modules/behavior/FlyoutMenu.js';
+import FlyoutMenu from '@cfpb/cfpb-atomic-component/src/utilities/behavior/FlyoutMenu.js';
 import MoveTransition from '@cfpb/cfpb-atomic-component/src/utilities/transition/MoveTransition.js';
 import TabTrigger from '../modules/TabTrigger.js';
 
@@ -50,7 +50,6 @@ function GlobalSearch(element) {
 
     // Set initial appearance.
     const transition = new MoveTransition(_contentDom).init();
-    transition.moveRight();
     _flyoutMenu.setExpandTransition(transition, transition.moveToOrigin);
     _flyoutMenu.setCollapseTransition(transition, transition.moveRight);
     _flyoutMenu.init();

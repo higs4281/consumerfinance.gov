@@ -3,13 +3,13 @@ import {
   setInitFlag,
 } from '@cfpb/cfpb-atomic-component/src/utilities/atomic-helpers.js';
 import EventObserver from '@cfpb/cfpb-atomic-component/src/mixins/EventObserver.js';
-import FlyoutMenu from '../modules/behavior/FlyoutMenu.js';
+import FlyoutMenu from '@cfpb/cfpb-atomic-component/src/utilities/behavior/FlyoutMenu.js';
+import MoveTransition from '@cfpb/cfpb-atomic-component/src/utilities/transition/MoveTransition.js';
+import { contains } from '@cfpb/cfpb-atomic-component/src/utilities/data-hook.js';
 import MegaMenuDesktop from '../organisms/MegaMenuDesktop.js';
 import MegaMenuMobile from '../organisms/MegaMenuMobile.js';
-import MoveTransition from '@cfpb/cfpb-atomic-component/src/utilities/transition/MoveTransition.js';
 import TabTrigger from '../modules/TabTrigger.js';
 import Tree from '../modules/Tree.js';
-import { contains } from '@cfpb/cfpb-atomic-component/src/utilities/data-hook.js';
 import { DESKTOP, viewportIsIn } from '../modules/util/breakpoint-state.js';
 
 /**
@@ -56,12 +56,20 @@ function MegaMenu(element) {
     // Create model.
     _menus = new Tree();
 
+    // Whether initial state is desktop or mobile.
+    const isInDesktop = viewportIsIn(DESKTOP);
+
     // Create root menu.
     const transition = new MoveTransition(rootContentDom).init();
     const rootMenu = new FlyoutMenu(rootMenuDom).init();
     // Set initial position.
-    rootMenu.setExpandTransition(transition, transition.moveToOrigin);
-    rootMenu.setCollapseTransition(transition, transition.moveLeft);
+    if (isInDesktop) {
+      rootMenu.setExpandTransition(transition, transition.moveUp);
+      rootMenu.setCollapseTransition(transition, transition.moveToOrigin);
+    } else {
+      rootMenu.setExpandTransition(transition, transition.moveToOrigin);
+      rootMenu.setCollapseTransition(transition, transition.moveLeft);
+    }
     _addEvents(rootMenu);
 
     // Populate tree model with menus.
@@ -87,7 +95,7 @@ function MegaMenu(element) {
       window.addEventListener('orientationchange', _resizeHandler);
     }
 
-    if (viewportIsIn(DESKTOP)) {
+    if (isInDesktop) {
       _desktopNav.resume();
     } else {
       _mobileNav.resume();

@@ -90,10 +90,6 @@ function MegaMenuDesktop(baseClass, menus) {
     // Set keyboard focus on first menu item link.
     const activeMenuDom = _activeMenu.getDom().content;
     activeMenuDom.classList.remove('u-invisible');
-
-    /* TODO: Remove or uncomment when keyboard navigation is in.
-       var firstMenuLink = activeMenuDom.querySelector( 'a' );
-       firstMenuLink.focus(); */
   }
 
   /**
@@ -216,7 +212,6 @@ function MegaMenuDesktop(baseClass, menus) {
 
       // This ensures the transition has been removed by MegaMenuMobile.
       transition = _setTransitionElement(wrapperDom, transition);
-      transition.moveUp();
 
       /* TODO: The only reason hiding is necessary is that the
          drop-shadow of the menu extends below its border,

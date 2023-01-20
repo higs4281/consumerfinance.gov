@@ -4,7 +4,7 @@ import {
 } from '@cfpb/cfpb-atomic-component/src/utilities/atomic-helpers.js';
 import EventObserver from '@cfpb/cfpb-atomic-component/src/mixins/EventObserver.js';
 import MaxHeightTransition from '@cfpb/cfpb-atomic-component/src/utilities/transition/MaxHeightTransition.js';
-import FlyoutMenu from '../modules/behavior/FlyoutMenu.js';
+import FlyoutMenu from '@cfpb/cfpb-atomic-component/src/utilities/behavior/FlyoutMenu.js';
 import {
   DESKTOP,
   TABLET,
