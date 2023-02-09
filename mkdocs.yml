@@ -1,6 +1,6 @@
 site_name: consumerfinance.gov
 
-repo_url: https://github.com/cfpb/consumerfinance.gov
+repo_url: https://github.com/higs4281/consumerfinance.gov
 
 nav:
   - Introduction: index.md
