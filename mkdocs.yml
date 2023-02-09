@@ -38,6 +38,7 @@ nav:
       - How We Use GitHub Actions: github-actions.md
   - APIs and Data:
       - Ask CFPB: ask-cfpb.md
+      - Consumer Complaints: consumer-complaint-database.md
       - Find a Housing Counselor Tool: housing-counselor-tool.md
 
 theme:
